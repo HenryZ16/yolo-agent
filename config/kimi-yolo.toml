@@ -1,0 +1,5 @@
+default_yolo = true
+
+[loop_control]
+max_steps_per_turn = 65536
+max_retries_per_step = 3

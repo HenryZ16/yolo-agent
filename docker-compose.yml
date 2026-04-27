@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  yolo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: agentic-yolo:latest
+    container_name: agentic-yolo
+    stdin_open: true
+    tty: true
+    working_dir: ${PROJECT_DIR:-/workspace}
+    environment:
+      - AGENT_TOOL=${AGENT_TOOL:-claude}
+      - HOST_UID=${HOST_UID:-}
+      - HOST_GID=${HOST_GID:-}
+      - PROJECT_DIR=${PROJECT_DIR:-/workspace}
+      - SSH_AUTH_SOCK=${SSH_AUTH_SOCK:-}
+    volumes:
+      # Project directory — mount to /workspace for compatibility
+      # and to its original host path for session resumption
+      - ${PROJECT_DIR:-.}:/workspace
+      - ${PROJECT_DIR:-.}:${PROJECT_DIR:-/workspace}
+      # Agent configs
+      - ${HOME}/.claude:/home/developer/.claude
+      - ${HOME}/.kimi:/home/developer/.kimi
+      # Agent home-dir-level files
+      - ${HOME}/.claude.json:/home/developer/.claude.json
+      - ${HOME}/.local/share/claude:/home/developer/.local/share/claude
+      - ${HOME}/.cache/claude:/home/developer/.cache/claude
+      # SSH (optional)
+      - ${SSH_AUTH_SOCK:-/dev/null}:${SSH_AUTH_SOCK:-/dev/null}
+      - ${HOME}/.ssh:/home/developer/.ssh:ro
+      # Git config
+      - ${HOME}/.gitconfig:/home/developer/.gitconfig:ro
+      # User-local binaries (pipx, etc.)
+      # - ${HOME}/.local/bin:/home/developer/.local/bin
+      # Python toolchains (enable as needed)
+      # - ${HOME}/.local/share/uv:/home/developer/.local/share/uv
+      # - ${HOME}/.cache/uv:/home/developer/.cache/uv
+      # - ${HOME}/miniconda3:/opt/conda
+      # - ${HOME}/.pyenv:/home/developer/.pyenv
+      # Rust toolchain
+      # - ${HOME}/.cargo:/home/developer/.cargo
+      # - ${HOME}/.rustup:/home/developer/.rustup
+      # Node.js toolchain
+      # - ${HOME}/.nvm:/home/developer/.nvm
+      # - ${HOME}/.npm:/home/developer/.npm
+      # Go toolchain
+      # - ${HOME}/go:/home/developer/go
+      # - /usr/local/go:/usr/local/go
