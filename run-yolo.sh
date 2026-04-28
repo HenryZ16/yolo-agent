@@ -252,6 +252,24 @@ if [[ -f "$HOME/.gitconfig" ]]; then
     DOCKER_ARGS+=("-v" "$HOME/.gitconfig:$DEV_HOME/.gitconfig:ro")
 fi
 
+# ---------------------------------------------------------------------------
+# Proxy auto-detection: pass through common proxy env vars from host
+# ---------------------------------------------------------------------------
+
+PASS_THROUGH_PROXIES=(
+    HTTP_PROXY http_proxy
+    HTTPS_PROXY https_proxy
+    NO_PROXY no_proxy
+    ALL_PROXY all_proxy
+    FTP_PROXY ftp_proxy
+)
+
+for var in "${PASS_THROUGH_PROXIES[@]}"; do
+    if [[ -n "${!var:-}" ]]; then
+        DOCKER_ARGS+=("-e" "$var=${!var}")
+    fi
+done
+
 # User-local binaries (e.g. pipx, local installs)
 if [[ -d "$HOME/.local/bin" ]]; then
     DOCKER_ARGS+=("-v" "$HOME/.local/bin:$DEV_HOME/.local/bin")
