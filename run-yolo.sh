@@ -183,7 +183,7 @@ fi
 
 if [[ "$BUILD" == true ]]; then
     info "Building Docker image: $IMAGE_NAME"
-    docker build -t "$IMAGE_NAME" "$DOCKERFILE_DIR"
+    docker build --build-arg "CACHE_BUST=$(date +%s)" -t "$IMAGE_NAME" "$DOCKERFILE_DIR"
 fi
 
 # ---------------------------------------------------------------------------
