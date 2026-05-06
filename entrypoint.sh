@@ -34,14 +34,28 @@ export HOME="$HOME_DIR"
 USER_HOME="${HOST_HOME:-$HOME_DIR}"
 
 # Detect and set up toolchain PATHs
+# Toolchains are mounted to developer's home ($HOME_DIR); check there
+# even if USER_HOME symlink failed (e.g. HOST_HOME dir exists and non-empty)
 declare -a PATH_ADDITIONS=()
 
-if [ -d "$USER_HOME/.local/bin" ]; then
-    PATH_ADDITIONS+=("$USER_HOME/.local/bin")
+# Helper: check both USER_HOME and HOME_DIR, prefer HOME_DIR for mount target
+_toolchain_path() {
+    local subpath="$1"
+    if [ -d "$HOME_DIR/$subpath" ]; then
+        echo "$HOME_DIR/$subpath"
+    elif [ -d "$USER_HOME/$subpath" ]; then
+        echo "$USER_HOME/$subpath"
+    fi
+}
+
+LOCAL_BIN=$(_toolchain_path ".local/bin")
+if [ -n "$LOCAL_BIN" ]; then
+    PATH_ADDITIONS+=("$LOCAL_BIN")
 fi
 
-if [ -d "$USER_HOME/.local/share/uv" ]; then
-    PATH_ADDITIONS+=("$USER_HOME/.local/share/uv/bin")
+UV_BIN=$(_toolchain_path ".local/share/uv")
+if [ -n "$UV_BIN" ]; then
+    PATH_ADDITIONS+=("$UV_BIN/bin")
 fi
 
 if [ -d "/opt/conda/bin" ]; then
@@ -51,20 +65,23 @@ if [ -d "/opt/conda/bin" ]; then
     fi
 fi
 
-if [ -d "$USER_HOME/.pyenv" ]; then
-    export PYENV_ROOT="$USER_HOME/.pyenv"
+PYENV_ROOT=$(_toolchain_path ".pyenv")
+if [ -n "$PYENV_ROOT" ]; then
+    export PYENV_ROOT
     PATH_ADDITIONS+=("$PYENV_ROOT/bin" "$PYENV_ROOT/shims")
     if command -v pyenv >/dev/null 2>&1; then
         eval "$(pyenv init -)" 2>/dev/null || true
     fi
 fi
 
-if [ -d "$USER_HOME/.cargo/bin" ]; then
-    PATH_ADDITIONS+=("$USER_HOME/.cargo/bin")
+CARGO_BIN=$(_toolchain_path ".cargo/bin")
+if [ -n "$CARGO_BIN" ]; then
+    PATH_ADDITIONS+=("$CARGO_BIN")
 fi
 
-if [ -d "$USER_HOME/.nvm" ]; then
-    export NVM_DIR="$USER_HOME/.nvm"
+NVM_DIR=$(_toolchain_path ".nvm")
+if [ -n "$NVM_DIR" ]; then
+    export NVM_DIR
     [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" 2>/dev/null || true
     [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion" 2>/dev/null || true
 fi
@@ -72,8 +89,9 @@ fi
 if [ -d "/usr/local/go/bin" ]; then
     PATH_ADDITIONS+=("/usr/local/go/bin")
 fi
-if [ -d "$USER_HOME/go/bin" ]; then
-    PATH_ADDITIONS+=("$USER_HOME/go/bin")
+GO_BIN=$(_toolchain_path "go/bin")
+if [ -n "$GO_BIN" ]; then
+    PATH_ADDITIONS+=("$GO_BIN")
 fi
 
 if [ ${#PATH_ADDITIONS[@]} -gt 0 ]; then
@@ -100,6 +118,11 @@ fi
 # Create symlink from host user's home to developer's home so that
 # any hardcoded host home paths resolve correctly inside the container
 if [ -n "${HOST_HOME:-}" ] && [ "$HOST_HOME" != "$HOME_DIR" ]; then
+    # Docker volume mounts may auto-create HOST_HOME as an empty directory.
+    # If it's empty, remove it so we can create the symlink.
+    if [ -d "$HOST_HOME" ] && [ -z "$(ls -A "$HOST_HOME" 2>/dev/null)" ]; then
+        rmdir "$HOST_HOME" 2>/dev/null || true
+    fi
     if [ ! -e "$HOST_HOME" ]; then
         mkdir -p "$(dirname "$HOST_HOME")"
         ln -sf "$HOME_DIR" "$HOST_HOME"

@@ -213,8 +213,11 @@ if [[ -n "$CONFIG_DIR" ]]; then
     CONFIG_DIR="$(cd "$CONFIG_DIR" && pwd)" || die "Config directory does not exist: $CONFIG_DIR"
     if [[ "$TOOL" == "claude" ]]; then
         DOCKER_ARGS+=("-v" "$CONFIG_DIR:$DEV_HOME/.claude")
+        # Also mount at host home path so absolute paths in settings.json resolve
+        DOCKER_ARGS+=("-v" "$CONFIG_DIR:$HOME/.claude")
     else
         DOCKER_ARGS+=("-v" "$CONFIG_DIR:$DEV_HOME/.kimi")
+        DOCKER_ARGS+=("-v" "$CONFIG_DIR:$HOME/.kimi")
     fi
 fi
 
